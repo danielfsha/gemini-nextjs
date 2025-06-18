@@ -1,6 +1,5 @@
-import { Base64 } from 'js-base64';
-import { TranscriptionService } from './transcriptionService';
-import { pcmToWav } from '../utils/audioUtils';
+import { TranscriptionService } from "./transcriptionService";
+import { pcmToWav } from "../utils/audioUtils";
 
 const MODEL = "models/gemini-2.0-flash-exp";
 const API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
@@ -14,7 +13,7 @@ export class GeminiWebSocket {
   private onMessageCallback: ((text: string) => void) | null = null;
   private onSetupCompleteCallback: (() => void) | null = null;
   private audioContext: AudioContext | null = null;
-  
+
   // Audio queue management
   private audioQueue: Float32Array[] = [];
   private isPlaying: boolean = false;
@@ -27,7 +26,7 @@ export class GeminiWebSocket {
   private accumulatedPcmData: string[] = [];
 
   constructor(
-    onMessage: (text: string) => void, 
+    onMessage: (text: string) => void,
     onSetupComplete: () => void,
     onPlayingStateChange: (isPlaying: boolean) => void,
     onAudioLevelChange: (level: number) => void,
@@ -40,7 +39,7 @@ export class GeminiWebSocket {
     this.onTranscriptionCallback = onTranscription;
     // Create AudioContext for playback
     this.audioContext = new AudioContext({
-      sampleRate: 24000  // Match the response audio rate
+      sampleRate: 24000, // Match the response audio rate
     });
     this.transcriptionService = new TranscriptionService();
   }
@@ -49,7 +48,7 @@ export class GeminiWebSocket {
     if (this.ws?.readyState === WebSocket.OPEN) {
       return;
     }
-    
+
     this.ws = new WebSocket(WS_URL);
 
     this.ws.onopen = () => {
@@ -63,11 +62,11 @@ export class GeminiWebSocket {
         if (event.data instanceof Blob) {
           const arrayBuffer = await event.data.arrayBuffer();
           const bytes = new Uint8Array(arrayBuffer);
-          messageText = new TextDecoder('utf-8').decode(bytes);
+          messageText = new TextDecoder("utf-8").decode(bytes);
         } else {
           messageText = event.data;
         }
-        
+
         await this.handleMessage(messageText);
       } catch (error) {
         console.error("[WebSocket] Error processing message:", error);
@@ -80,7 +79,7 @@ export class GeminiWebSocket {
 
     this.ws.onclose = (event) => {
       this.isConnected = false;
-      
+
       // Only attempt to reconnect if we haven't explicitly called disconnect
       if (!event.wasClean && this.isSetupComplete) {
         setTimeout(() => this.connect(), 1000);
@@ -93,9 +92,9 @@ export class GeminiWebSocket {
       setup: {
         model: MODEL,
         generation_config: {
-          response_modalities: ["AUDIO"] 
-        }
-      }
+          response_modalities: ["AUDIO"],
+        },
+      },
     };
     this.ws?.send(JSON.stringify(setupMessage));
   }
@@ -105,11 +104,13 @@ export class GeminiWebSocket {
 
     const message = {
       realtime_input: {
-        media_chunks: [{
-          mime_type: mimeType === "audio/pcm" ? "audio/pcm" : mimeType,
-          data: b64Data
-        }]
-      }
+        media_chunks: [
+          {
+            mime_type: mimeType === "audio/pcm" ? "audio/pcm" : mimeType,
+            data: b64Data,
+          },
+        ],
+      },
     };
 
     try {
@@ -132,7 +133,7 @@ export class GeminiWebSocket {
 
       // Convert to Int16Array (PCM format)
       const pcmData = new Int16Array(bytes.buffer);
-      
+
       // Convert to float32 for Web Audio API
       const float32Data = new Float32Array(pcmData.length);
       for (let i = 0; i < pcmData.length; i++) {
@@ -148,7 +149,8 @@ export class GeminiWebSocket {
   }
 
   private async playNextInQueue() {
-    if (!this.audioContext || this.isPlaying || this.audioQueue.length === 0) return;
+    if (!this.audioContext || this.isPlaying || this.audioQueue.length === 0)
+      return;
 
     try {
       this.isPlaying = true;
@@ -174,7 +176,7 @@ export class GeminiWebSocket {
       this.currentSource = this.audioContext.createBufferSource();
       this.currentSource.buffer = audioBuffer;
       this.currentSource.connect(this.audioContext.destination);
-      
+
       this.currentSource.onended = () => {
         this.isPlaying = false;
         this.currentSource = null;
@@ -214,7 +216,7 @@ export class GeminiWebSocket {
   private async handleMessage(message: string) {
     try {
       const messageData = JSON.parse(message);
-      
+
       if (messageData.setupComplete) {
         this.isSetupComplete = true;
         this.onSetupCompleteCallback?.();
@@ -236,13 +238,14 @@ export class GeminiWebSocket {
       if (messageData.serverContent?.turnComplete === true) {
         if (this.accumulatedPcmData.length > 0) {
           try {
-            const fullPcmData = this.accumulatedPcmData.join('');
+            const fullPcmData = this.accumulatedPcmData.join("");
             const wavData = await pcmToWav(fullPcmData, 24000);
-            
-            const transcription = await this.transcriptionService.transcribeAudio(
-              wavData,
-              "audio/wav"
-            );
+
+            const transcription =
+              await this.transcriptionService.transcribeAudio(
+                wavData,
+                "audio/wav"
+              );
             console.log("[Transcription]:", transcription);
 
             this.onTranscriptionCallback?.(transcription);
@@ -266,4 +269,4 @@ export class GeminiWebSocket {
     this.isConnected = false;
     this.accumulatedPcmData = [];
   }
-} 
+}
