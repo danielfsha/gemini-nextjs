@@ -42,6 +42,7 @@ export default function CameraPreview({ onTranscription }: CameraPreviewProps) {
       audioContextRef.current.close();
       audioContextRef.current = null;
     }
+    setIsAudioSetup(false); // Ensure audio setup state is reset on cleanup
   }, []);
 
   const cleanupWebSocket = useCallback(() => {
@@ -109,16 +110,19 @@ export default function CameraPreview({ onTranscription }: CameraPreviewProps) {
 
         setStream(combinedStream);
         setIsStreaming(true);
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("Error accessing media devices:", err);
         cleanupAudio();
 
         // Handle NotFoundError
-        if (err && err.name === "NotFoundError") {
+        if (err instanceof DOMException && err.name === "NotFoundError") {
           setMediaError(
             "No camera or microphone found. Please connect a device and try again."
           );
-        } else if (err && err.name === "NotAllowedError") {
+        } else if (
+          err instanceof DOMException &&
+          err.name === "NotAllowedError"
+        ) {
           setMediaError(
             "Permission denied. Please allow camera and microphone access."
           );
@@ -259,9 +263,10 @@ export default function CameraPreview({ onTranscription }: CameraPreviewProps) {
           setIsAudioSetup(false);
         };
       } catch (error) {
+        // Log the error for debugging
+        console.error("Error setting up audio processing:", error);
         if (isActive) {
           cleanupAudio();
-          setIsAudioSetup(false);
         }
         setupInProgressRef.current = false;
       }
@@ -272,14 +277,21 @@ export default function CameraPreview({ onTranscription }: CameraPreviewProps) {
 
     return () => {
       isActive = false;
-      setIsAudioSetup(false);
+      // No need to set setIsAudioSetup(false) here, as cleanupAudio already handles it
       setupInProgressRef.current = false;
       if (audioWorkletNodeRef.current) {
         audioWorkletNodeRef.current.disconnect();
         audioWorkletNodeRef.current = null;
       }
     };
-  }, [isStreaming, stream, isWebSocketReady, isModelSpeaking]);
+  }, [
+    isStreaming,
+    stream,
+    isWebSocketReady,
+    isModelSpeaking,
+    cleanupAudio,
+    isAudioSetup,
+  ]); // Added missing dependencies
 
   // Capture and send image
   const captureAndSendImage = () => {

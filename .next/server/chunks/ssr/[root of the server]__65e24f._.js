@@ -520,6 +520,7 @@ function CameraPreview({ onTranscription }) {
             audioContextRef.current.close();
             audioContextRef.current = null;
         }
+        setIsAudioSetup(false); // Ensure audio setup state is reset on cleanup
     }, []);
     const cleanupWebSocket = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useCallback"])(()=>{
         if (geminiWsRef.current) {
@@ -583,9 +584,9 @@ function CameraPreview({ onTranscription }) {
                 console.error("Error accessing media devices:", err);
                 cleanupAudio();
                 // Handle NotFoundError
-                if (err && err.name === "NotFoundError") {
+                if (err instanceof DOMException && err.name === "NotFoundError") {
                     setMediaError("No camera or microphone found. Please connect a device and try again.");
-                } else if (err && err.name === "NotAllowedError") {
+                } else if (err instanceof DOMException && err.name === "NotAllowedError") {
                     setMediaError("Permission denied. Please allow camera and microphone access.");
                 } else {
                     setMediaError("Could not access camera or microphone. Please check your device and browser settings.");
@@ -692,9 +693,10 @@ function CameraPreview({ onTranscription }) {
                     setIsAudioSetup(false);
                 };
             } catch (error) {
+                // Log the error for debugging
+                console.error("Error setting up audio processing:", error);
                 if (isActive) {
                     cleanupAudio();
-                    setIsAudioSetup(false);
                 }
                 setupInProgressRef.current = false;
             }
@@ -703,7 +705,7 @@ function CameraPreview({ onTranscription }) {
         setupAudioProcessing();
         return ()=>{
             isActive = false;
-            setIsAudioSetup(false);
+            // No need to set setIsAudioSetup(false) here, as cleanupAudio already handles it
             setupInProgressRef.current = false;
             if (audioWorkletNodeRef.current) {
                 audioWorkletNodeRef.current.disconnect();
@@ -714,8 +716,10 @@ function CameraPreview({ onTranscription }) {
         isStreaming,
         stream,
         isWebSocketReady,
-        isModelSpeaking
-    ]);
+        isModelSpeaking,
+        cleanupAudio,
+        isAudioSetup
+    ]); // Added missing dependencies
     // Capture and send image
     const captureAndSendImage = ()=>{
         if (!videoRef.current || !videoCanvasRef.current || !geminiWsRef.current) return;
@@ -740,7 +744,7 @@ function CameraPreview({ onTranscription }) {
                 children: mediaError
             }, void 0, false, {
                 fileName: "[project]/app/components/CameraPreview.tsx",
-                lineNumber: 310,
+                lineNumber: 322,
                 columnNumber: 9
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -753,7 +757,7 @@ function CameraPreview({ onTranscription }) {
                         className: "w-[640px] h-[480px] bg-muted rounded-lg overflow-hidden"
                     }, void 0, false, {
                         fileName: "[project]/app/components/CameraPreview.tsx",
-                        lineNumber: 315,
+                        lineNumber: 327,
                         columnNumber: 9
                     }, this),
                     isStreaming && connectionStatus !== "connected" && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -765,7 +769,7 @@ function CameraPreview({ onTranscription }) {
                                     className: "animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto"
                                 }, void 0, false, {
                                     fileName: "[project]/app/components/CameraPreview.tsx",
-                                    lineNumber: 325,
+                                    lineNumber: 337,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -773,7 +777,7 @@ function CameraPreview({ onTranscription }) {
                                     children: connectionStatus === "connecting" ? "Connecting to Gemini..." : "Disconnected"
                                 }, void 0, false, {
                                     fileName: "[project]/app/components/CameraPreview.tsx",
-                                    lineNumber: 326,
+                                    lineNumber: 338,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -781,18 +785,18 @@ function CameraPreview({ onTranscription }) {
                                     children: "Please wait while we establish a secure connection"
                                 }, void 0, false, {
                                     fileName: "[project]/app/components/CameraPreview.tsx",
-                                    lineNumber: 331,
+                                    lineNumber: 343,
                                     columnNumber: 15
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/app/components/CameraPreview.tsx",
-                            lineNumber: 324,
+                            lineNumber: 336,
                             columnNumber: 13
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/app/components/CameraPreview.tsx",
-                        lineNumber: 323,
+                        lineNumber: 335,
                         columnNumber: 11
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["Button"], {
@@ -804,24 +808,24 @@ function CameraPreview({ onTranscription }) {
                             className: "h-6 w-6"
                         }, void 0, false, {
                             fileName: "[project]/app/components/CameraPreview.tsx",
-                            lineNumber: 349,
+                            lineNumber: 361,
                             columnNumber: 13
                         }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$video$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__Video$3e$__["Video"], {
                             className: "h-6 w-6"
                         }, void 0, false, {
                             fileName: "[project]/app/components/CameraPreview.tsx",
-                            lineNumber: 351,
+                            lineNumber: 363,
                             columnNumber: 13
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/app/components/CameraPreview.tsx",
-                        lineNumber: 338,
+                        lineNumber: 350,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/app/components/CameraPreview.tsx",
-                lineNumber: 314,
+                lineNumber: 326,
                 columnNumber: 7
             }, this),
             isStreaming && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -834,12 +838,12 @@ function CameraPreview({ onTranscription }) {
                     }
                 }, void 0, false, {
                     fileName: "[project]/app/components/CameraPreview.tsx",
-                    lineNumber: 357,
+                    lineNumber: 369,
                     columnNumber: 11
                 }, this)
             }, void 0, false, {
                 fileName: "[project]/app/components/CameraPreview.tsx",
-                lineNumber: 356,
+                lineNumber: 368,
                 columnNumber: 9
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("canvas", {
@@ -847,13 +851,13 @@ function CameraPreview({ onTranscription }) {
                 className: "hidden"
             }, void 0, false, {
                 fileName: "[project]/app/components/CameraPreview.tsx",
-                lineNumber: 366,
+                lineNumber: 378,
                 columnNumber: 7
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/app/components/CameraPreview.tsx",
-        lineNumber: 307,
+        lineNumber: 319,
         columnNumber: 5
     }, this);
 }
