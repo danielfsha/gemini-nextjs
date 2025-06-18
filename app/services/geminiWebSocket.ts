@@ -203,7 +203,11 @@ export class GeminiWebSocket {
       try {
         this.currentSource.stop();
       } catch (e) {
-        // Ignore errors if already stopped
+        console.warn(
+          "[WebSocket] Error stopping current audio (might be already stopped):",
+          e
+        );
+        // Or simply: console.log(e);
       }
       this.currentSource = null;
     }
